@@ -1,0 +1,785 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>reveal.js</title>
+
+		<link rel="stylesheet" href="css/reset.css">
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/black.css">
+		<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous"/>
+
+
+		<!-- Theme used for syntax highlighting of code -->
+		<link rel="stylesheet" href="lib/css/monokai.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+	</head>
+	<body>
+		<style>
+			.reveal i{
+				font-family: 'FontAwesome';
+				font-style: normal;
+			}
+			.red{
+				color:rgb(255, 150, 150);
+			}
+			.green{
+				color:rgb(150, 255, 150);
+			}
+			.yellow{
+				color:rgb(255, 255, 123);
+			}
+			.row{
+				display:flex;
+				flex-direction:row;
+				justify-content: space-around;
+			}
+			.box{
+				border:1px solid white;
+				padding:15px;
+				margin:5px;
+				font-size:24pt;
+			}
+			.emph{
+				font-style:italic;
+			}
+			.ul{
+				text-decoration: underline;
+			}
+
+			.smallerfont{
+				font-size:0.8em;
+			}
+			.evensmallerfont{
+				font-size:0.6em;
+			}
+			.evenevensmallerfont{
+				font-size:0.5em;
+			}
+			.smallestfont{
+				font-size:0.45em;
+			}
+
+			/* Make selection text color black in code tags */
+			::selection {
+				color:darkslategrey;
+			}
+
+			.Equeue{
+				display: flex;
+				padding: 0.3em;
+				width:   100%;
+				align-items: center;
+			}
+			.Eclause{
+				width:  0.8em;
+				height: 0.8em;
+				margin: 0.1em 0.2em;
+				align-items: center;
+				display: flex;
+				justify-content: center;
+			}
+
+			table.resultTable {
+				width: 80%; /* Ensure the table spans the full width of its container */
+				table-layout: fixed; /* Use fixed table layout to control column widths */
+			}
+
+			.resultTable th, .smallestfont td {
+				width: 12.5%; /* Distributes width equally across all columns */
+			}
+
+
+
+
+		</style>
+		<div class="reveal">
+			<div class="slides">
+				<section>
+					<h3>Dataset-Specific Strategies for the E Theorem Prover</h3>
+					<hr>
+					<h4>Jack McKeown <span class="smallerfont" style="margin:20px;">&</span> Geoff Sutcliffe</h4>
+					<h6 class="evensmallerfont">(jam771@miami.edu)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(geoff@cs.miami.edu)</h6>
+				</section>
+
+				<section id="outline">
+					<h4>Outline</h4>
+					<div class="box">
+						<ol>
+							<li class="fragment">Saturation and given clause selection</li>
+							<li class="fragment">E strategies, heuristics, and CEFs</li>
+							<li class="fragment">Strategy merging</li>
+							<li class="fragment">Potential interactive theorem proving application</li>
+							<li class="fragment">Results</li>
+						</ol>
+					</div>
+				</section>
+
+
+
+					
+
+
+				<section id="saturation">
+					<section>
+						<h4>Saturation Based <br>Automated Theorem Proving (ATP)</h4>
+						<ul class="smallerfont">
+							<li class="fragment">
+								Prove conjecture $C$ from Axioms by showing that <br>
+								&nbsp;&nbsp;&nbsp;&nbsp;<span class="green">CNF(Axioms $\cup$ $\{\sim C\}$)</span><br> is unsatisfiable
+							</li>
+							<li class="fragment"><span class="green">Saturation:</span> Compute the closure with sound inference rules</li>
+							<li class="fragment">Show unsatisfiability by deriving the empty clause via saturation</li>
+						</ul>
+					</section>
+					<section id="givenClauseSelection">
+						<h4>Given Clause Selection</h4>
+						<img src="images/processedAndUnprocessedSets2.svg" style="background:white">
+					</section>
+				</section>
+
+
+				<section id="eprover">
+					<section>
+						<h4>The E Theorem Prover</h4>
+						<ul class="smallerfont">
+							<li class="fragment">
+								High-performance saturation-based prover written in C
+							</li>
+							<li class="fragment">Can automatically select guidance strategies:
+								<ul>
+									<li class="fragment smallerfont"> <span class="term">--auto</span>
+									</li>
+									<li class="fragment smallerfont"> <span class="term">--auto-schedule</span></li>
+								</ul>
+							</li>
+							<li class="fragment">Developed by Stephan Schulz (thank you 🙏)</li>
+						</ul>
+					</section>
+
+
+					<section>
+						<h4>E Guidance Summary</h4>
+						<ul class="smallerfont">
+							<li class="fragment">--auto chooses a <em class="green">strategy</em></li>
+							<li class="fragment">An important part of each <em class="green">strategy</em> is its <em class="yellow">heuristic</em></li>
+							<li class="fragment">A <em class="yellow">heuristic</em> is a schedule over a set of <em class="red">Clause Evaluation Functions</em></li>
+						</ul>
+
+					</section>
+
+					<section id="eCEF">
+						<h4>Clause Evaluation Functions (CEFs)</h4>
+						<ul>
+							<li class="fragment smallerfont">CEFs are used to select given clauses.</li>
+							<li class="fragment smallerfont">Clause evaluations are used in a <em class="green">priority queue</em> per CEF</li>
+							<li class="fragment">
+								<div class="Equeue box">
+									<div class="Eclause"> $\leftarrow$</div>
+									<div class="box Eclause" style="background-color:rgb(150, 255, 150)"></div>
+									<div class="box Eclause" style="background-color:rgb(255, 150, 150)"></div>
+									<div class="box Eclause" style="background-color:rgb(150, 150, 255)"></div>
+									<div class="Eclause">$...$</div>
+									<div style="width:2em;"></div>
+									<div class="evenevensmallerfont">
+										$$\underbrace{\text{ConjectureRelativeSymbolWeight}}_{\text{weight function}}(\underbrace{\text{SimulateSOS}}_{\text{priority function}},\underbrace{0.5, 100, 100, 100, 100, 1.5, 1.5, 1}_{\text{other args}})$$
+									</div>
+								</div>
+							</li>
+						</ul>
+					</section>
+					
+					<section id="eQueues">
+						<h4>Given Clause Selection in E ("Heuristics")</h4>
+
+						<div class="Equeue box">
+							<div class="Eclause"> $\leftarrow$</div>
+							<div class="box Eclause" style="background-color:rgb(150, 255, 150)"></div>
+							<div class="box Eclause" style="background-color:rgb(255, 150, 150)"></div>
+							<div class="box Eclause" style="background-color:rgb(150, 150, 255)"></div>
+							<div class="Eclause">$...$</div>
+							<div style="width:2em;"></div>
+							<div class="smallerfont"><span class="green">1</span>.ConjectureRelativeSymbolWeight(SimulateSOS,0.5,...)</div>
+						</div>
+					
+						<div class="Equeue box">
+							<div class="Eclause"> $\leftarrow$</div>
+							<div class="box Eclause" style="background-color:rgb(255, 150, 150)"></div>
+							<div class="box Eclause" style="background-color:rgb(255, 255, 123)"></div>
+							<div class="box Eclause" style="background-color:rgb(150, 150, 255)"></div>
+							<div class="Eclause">$...$</div>
+							<div style="width:2em;"></div>
+							<div class="smallerfont"><span class="green">4</span>.ConjectureRelativeSymbolWeight(ConstPrio,0.1,...)</div>
+						</div>
+					
+						<div class="Equeue box">
+							<div class="Eclause"> $\leftarrow$</div>
+							<div class="box Eclause" style="background-color:rgb(255, 255, 123)"></div>
+							<div class="box Eclause" style="background-color:rgb(150, 255, 150)"></div>
+							<div class="box Eclause" style="background-color:rgb(150, 150, 255)"></div>
+							<div class="Eclause">$...$</div>
+							<div style="width:2em;"></div>
+							<div class="smallerfont"><span class="green">1</span>.FIFOWeight(PreferProcessed)</div>
+						</div>
+						$\vdots$
+					
+						<div class="Equeue box">
+							<div class="Eclause"> $\leftarrow$</div>
+							<div class="box Eclause" style="background-color:rgb(150, 150, 255)"></div>
+							<div class="box Eclause" style="background-color:rgb(255, 255, 123)"></div>
+							<div class="box Eclause" style="background-color:rgb(255, 150, 150)"></div>
+							<div class="Eclause">$...$</div>
+							<div style="width:2em;"></div>
+							<div class="smallerfont"><span class="green">4</span>.Refinedweight(SimulateSOS,3,...)</div>
+						</div>
+					
+						<textarea cols="70" rows="8" style="overflow: hidden;">
+Heuristic Definition in E:
+(fixed for a proof attempt)
+
+1.ConjectureRelativeSymbolWeight(SimulateSOS,0.5,...),
+4.ConjectureRelativeSymbolWeight(ConstPrio,0.1,...),
+1.FIFOWeight(PreferProcessed),
+1.ConjectureRelativeSymbolWeight(PreferNonGoals,0.5,...),
+4.Refinedweight(SimulateSOS,3,...)
+						</textarea>
+					</section>
+					
+
+
+					<section>
+						<h4>Example E Strategy</h4>
+
+						<pre><code style="font-size:0.8em;">eprover --auto --print-strategy MPT0001+1.p > MPT0001+1.strat</code></pre>
+						<hr>
+						
+						<pre class="fragment"><span>MPT0001+1.strat:</span>
+							<code data-trim data-noescape data-line-numbers style="font-size:0.5em;line-height: 1em;" class="selection">
+{
+	{
+		ordertype:               KBO6
+		to_weight_gen:           precedence
+		to_prec_gen:             invfreqhack
+		rewrite_strong_rhs_inst: true
+		to_pre_prec:             ""
+		conj_only_mod:           0
+		conj_axiom_mod:          0
+		axiom_only_mod:          0
+		skolem_mod:              0
+		defpred_mod:             0
+		force_kbo_var_weight:    false
+		to_pre_weights:          ""
+		to_const_weight:         0
+		to_defs_min:             false
+		lit_cmp:                 1
+		lam_w:                   20
+		db_w:                    10
+		ho_order_kind:           lfho
+	}
+	no_preproc:                     false
+	eqdef_maxclauses:               20000
+	eqdef_incrlimit:                20
+	formula_def_limit:              24
+	sine:                           "Auto"
+	add_goal_defs_pos:             false
+	add_goal_defs_neg:             false
+	add_goal_defs_subterms:        false
+	heuristic_name: Default
+	heuristic_def:                 "(1.ConjectureRelativeSymbolWeight(SimulateSOS,0.5,100,100,100,100,1.5,1.5,1),
+					4.ConjectureRelativeSymbolWeight(ConstPrio,0.1,100,100,100,100,1.5,1.5,1.5),
+					1.FIFOWeight(PreferProcessed),
+					1.ConjectureRelativeSymbolWeight(PreferNonGoals,0.5,100,100,100,100,1.5,1.5,1),
+					4.Refinedweight(SimulateSOS,3,2,2,1.5,2))"
+	prefer_initial_clauses:         false
+	selection_strategy:             SelectComplexExceptUniqMaxHorn
+	pos_lit_sel_min:                0
+	pos_lit_sel_max:                9223372036854775807
+	neg_lit_sel_min:                0
+	neg_lit_sel_max:                9223372036854775807
+	all_lit_sel_min:                0
+	all_lit_sel_max:                9223372036854775807
+	weight_sel_min:                 0
+	select_on_proc_only:            false
+	inherit_paramod_lit:            false
+	inherit_goal_pm_lit:            false
+	inherit_conj_pm_lit:            false
+	enable_eq_factoring:            true
+	enable_neg_unit_paramod:        true
+	enable_given_forward_simpl:     true
+	pm_type:                        ParamodSim
+	ac_handling:                    1
+	ac_res_aggressive:              true
+	forward_context_sr:             true
+	forward_context_sr_aggressive:  false
+	backward_context_sr:            false
+	forward_subsumption_aggressive: false
+	forward_demod:                  2
+	prefer_general:                 false
+	condensing:                     false
+	condensing_aggressive:          false
+	er_varlit_destructive:          true
+	er_strong_destructive:          true
+	er_aggressive:                  true
+	split_clauses:                  0
+	split_method:                   0
+	split_aggressive:               false
+	split_fresh_defs:               true
+	rw_bw_index_type:               FP7
+	pm_from_index_type:             FP7
+	pm_into_index_type:             FP7
+	sat_check_grounding:            ConjMinMinFreq
+	sat_check_step_limit:           5000
+	sat_check_size_limit:           9223372036854775807
+	sat_check_ttinsert_limit:       9223372036854775807
+	sat_check_normconst:            false
+	sat_check_normalize:            false
+	sat_check_decision_limit:       10000
+	filter_orphans_limit:           9223372036854775807
+	forward_contract_limit:         9223372036854775807
+	delete_bad_limit:               2000000000
+	mem_limit:                      0
+	watchlist_simplify:             true
+	watchlist_is_static:            false
+	use_tptp_sos:                   false
+	presat_interreduction:          true
+	detsort_bw_rw:                  false
+	detsort_tmpset:                 false
+	arg_cong:                       all
+	neg_ext:                        off
+	pos_ext:                        off
+	ext_rules_max_depth:            -1
+	inverse_recognition:            false
+	replace_inj_defs:               false
+	lift_lambdas:                  true
+	lambda_to_forall:              true
+	unroll_only_formulas:          true
+	elim_leibniz_max_depth:        -1
+	prim_enum_mode:                pragmatic
+	prim_enum_max_depth:           -1
+	inst_choice_max_depth:         -1
+	local_rw:                      false
+	prune_args:                    false
+	preinstantiate_induction:      false
+	fool_unroll:                   true
+	func_proj_limit:               0
+	imit_limit:                    0
+	ident_limit:                   0
+	elim_limit:                    0
+	unif_mode:                     single
+	pattern_oracle:                true
+	fixpoint_oracle:               true
+	max_unifiers:                  4
+	max_unif_steps:                256
+}
+									
+								</code>
+						</pre>
+
+					</section>
+
+
+
+				</section>
+
+
+				<section id="strategyMerging">
+
+					<section>
+						<h4>Strategy Merging - Basic Idea</h4>
+						<ol class="smallerfont">
+							<li class="fragment">Use <em class="green">--auto</em> to get strategies E suggests for all problems</li>
+							<li class="fragment">Merge all strategies into a single strategy</li>
+							<li class="fragment">Use the merged strategy for all problems</li>
+						</ol>
+					</section>
+
+					<section>
+						<h4>Strategy Merging - Methodology</h4>
+						<ul class="evensmallerfont">
+							<li class="fragment">Each <em class="yellow">key</em> in the merged strategy gets the most common <em class="red">value</em> from the input strategies.</li>
+							<li class="fragment">
+								<em class="yellow">Heuristic</em> is special: all CEFs from all input strategies are in the merged strategies:
+								<ul>
+									<li class="fragment"><em class="green">MasterAllOnes:</em>Heuristic weights are all set to 1</li>
+									<li class="fragment"><em class="green">MasterWeighted:</em>Heuristic weights come from $\left\lceil\frac{20s_i}{s_m}\right\rceil$ where:
+										<ul>
+											<li class="fragment">$s_i$ is the sum of the heuristic weights of CEF $i$ in the input strategies</li>
+											<li class="fragment">$s_m = \max_{i}(s_i)$</li>
+										</ul>
+									</li>
+									<li class="fragment"><em class="green">MasterSuccess:</em>Same as MasterWeighted, but merging only strategies that work for solving their problem.</li>
+								</ul>
+							</li>
+						</ul>
+					</section>
+
+					<section>
+						<h4>Strategy Merging </h4>
+						<img src="images/StratMerging.svg" style="width:850px;background:rgb(223, 251, 255)">
+					</section>
+
+					<section id="itpApplication">
+						<h4>Interactive Theorem Proving Application</h4>
+						<ul class="smallerfont">
+							<li class="fragment">Interactive theorem provers use ATPs as <em class="yellow">hammers</em></li>
+							<li class="fragment">This leads to a sequence of related problems</li>
+							<li class="fragment"><em class="green">MasterIncremental:</em> The strategies for problems $1,2,...i$ are merged and that strategy is used for problem $i+1$</li>
+							<li class="fragment">So the first problem keeps its original strategy, and the last problem uses <em class="green">MasterWeighted</em></li>
+						</ul>
+					</section>
+
+					<section>
+						<h4>Interactive Theorem Proving Application</h4>
+						<img src="images/IterativeStratMerging.svg" style="width:800px;background:rgb(223, 251, 255)">
+					</section>
+
+					<section id="ablationStudy">
+						<h4>Ablation Study</h4>
+						<ul class="smallerfont">
+							<li class="fragment"><em class="green">CommonHeuristic:</em> <em class="yellow">--auto</em> strategy with <em class="red">MasterWeighted</em> heuristic</li>
+							<li class="fragment"><em class="green">CommonElse:</em> <em class="red">MasterWeighted</em> strategy with <em class="yellow">--auto</em> heuristic</li>
+						</ul>
+					</section>
+
+					<section id="fullArchitecture">
+						<h4>Full Architecture</h4>
+						<img src="images/architecture2.svg" style="width:680px;background:rgb(223, 251, 255)">
+					</section>
+				</section>
+
+
+
+
+				<section id="otherComparisons">
+					<section>
+						<h4>More Baselines - <span class="green">AutoAll</span></h4>
+						<ul class="evensmallerfont">
+							<li class="fragment"><span class="yellow">Question:</span> <br>How does the merged strategy compare to a well-chosen E strategy?</li>
+							<li class="fragment"><span class="green">How to answer:</span>
+							<ul>
+								<li class="fragment">Get all strategies chosen by <span class="green">--auto</span> over all problems in a dataset.</li>
+								<li class="fragment">Use every (unique) strategy on every problem</li>
+								<li class="fragment">Pick the best results</li>
+							</ul>
+							</li>
+						</ul>
+					</section>
+
+					<section>
+						<h4>More Baselines - <span class="green">MasterWeightedRR</span></h4>
+						<ul class="evensmallerfont">
+							<li class="fragment"><span class="yellow">Question:</span><br> Can MasterWeighted be improved by making E's CEF selection more fair?</li>
+							<li class="fragment"><span class="green">How to answer:</span>
+							<ul>
+								<li class="fragment">Usually 3*<span class="green">CEF1</span>, 2*<span class="red">CEF2</span> $\rightarrow$ <span class="fragment green">CEF1, </span><span class="fragment green">CEF1, </span> <span class="fragment green">CEF1,</span> <span class="fragment red">CEF2,</span> <span class="fragment red">CEF2,</span> <span class="fragment smallerfont">repeat</span></li>
+								<li class="fragment">Instead 3*<span class="green">CEF1</span>, 2*<span class="red">CEF2</span> $\rightarrow$ <span class="fragment green">CEF1,</span> <span class="fragment red">CEF2, </span><span class="fragment green">CEF1,</span> <span class="fragment red">CEF2, </span><span class="fragment green">CEF1,</span> <span class="fragment smallerfont">repeat</span></li>
+								<li class="fragment">Changed E code</li>
+								<li class="fragment">(<span class="green">MasterWeighted</span> strategy is used unchanged in this new context.)</li>
+									
+							</ul>
+							
+							</li>
+						</ul>
+					</section>
+				</section>
+
+
+				<section id="datasets">
+					<h4>Datasets</h4>
+					<ul class="evensmallerfont">
+						<li class="fragment"><span class="green">MPTPTP2078:</span> 2078 <span style="text-decoration: underline;">first-order</span> problems</li>
+						<li class="fragment"><span class="red">VBT:</span> 8000 <span style="text-decoration: underline;">typed-first</span>-order problems <span class="fragment">(from Isabelle's Sledgehammer)</span></li>
+						<li class="fragment"><span class="yellow">SLH-29:</span> 8400 <span style="text-decoration: underline;">higher-order</span> problems <span class="fragment">(from Isabelle's Sledgehammer)</span></li>
+					</ul>
+				</section>
+
+
+				<section id="results">
+					<!-- <section>
+						<h4>Results - Problems solved</h4>
+						<table class="smallestfont resultTable">
+							<tr class="fragment">
+							  <th class="green"></th>
+							  <th class="green">Auto</th>
+							  <th class="green">AutoAll</th>
+							  <th class="green">Master AllOnes</th>
+							  <th class="green">Master Weighted</th>
+							  <th class="green">Master Weighted RR</th>
+							  <th class="green">Master Success</th>
+							  <th class="green">Master Incr.</th>
+							</tr>
+							<tr class="fragment">
+							  <td><b class="green">M'2078</b></td>
+							  <td>1151</td>
+							  <td><b style="text-decoration:underline">1438</b></td>
+							  <td><b style="text-decoration:underline;">1219</b></td>
+							  <td>1210</td>
+							  <td>1201</td>
+							  <td>1199</td>
+							  <td>1199</td>
+							</tr>
+							<tr class="fragment">
+							  <td><b class="green">VBT</b></td>
+							  <td>2637</td>
+							  <td><b style="text-decoration:underline;">3596</b></td>
+							  <td>2701</td>
+							  <td>2841</td>
+							  <td><b style="text-decoration:underline;">2858</b></td>
+							  <td>2806</td>
+							  <td>2785</td>
+							</tr>
+							<tr class="fragment">
+							  <td><b class="green">SLH-29</b></td>
+							  <td>3396</td>
+							  <td><b style="text-decoration:underline;">4203</b></td>
+							  <td>3642</td>
+							  <td><b style="text-decoration:underline;">3743</b></td>
+							  <td>3565</td>
+							  <td>3505</td>
+							  <td>3556</td>
+							</tr>
+						  </table>
+					</section>
+					  
+					<section>
+						<h4>Results - Given Clause Selections (median)</h4>
+
+						<table class="smallestfont resultTable">
+							<tr class="fragment">
+							  <th></th>
+							  <th class="green">Auto</th>
+							  <th class="green">AutoAll</th>
+							  <th class="green">Master AllOnes</th>
+							  <th class="green">Master Weighted</th>
+							  <th class="green">Master Weighted RR</th>
+							  <th class="green">Master Success</th>
+							  <th class="green">Master Incr.</th>
+							</tr>
+							<tr class="fragment">
+							  <td><b class="green">M'2078</b></td>
+							  <td>104</td>
+							  <td><b style="text-decoration: underline;">51.5</b></td>
+							  <td><b style="text-decoration: underline;">92</b></td>
+							  <td>103.5</td>
+							  <td>119.5</td>
+							  <td>117</td>
+							  <td>112</td>
+							</tr>
+							<tr class="fragment">
+							  <td><b class="green">VBT</b></td>
+							  <td>1798</td>
+							  <td><b style="text-decoration: underline;">693.5</b></td>
+							  <td><b style="text-decoration: underline;">1475</b></td>
+							  <td>1565</td>
+							  <td>1524</td>
+							  <td>1600.5</td>
+							  <td>1558</td>
+							</tr>
+							<tr class="fragment">
+							  <td><b class="green">SLH-29</b></td>
+							  <td>1433</td>
+							  <td><b style="text-decoration: underline;">492</b></td>
+							  <td>874.5</td>
+							  <td><b style="text-decoration: underline;">751</b></td>
+							  <td>827.5</td>
+							  <td>760</td>
+							  <td>757</td>
+							</tr>
+						  </table>
+					</section> -->
+
+
+
+					<section>
+						<h4>Problems solved</h4>
+						<table class="smallestfont resultTable">
+							<tr class="fragment smallerfont">
+							  <th class="green"></th>
+							  <th class="green">Auto</th>
+							  <th class="green">AutoAll</th>
+							  <th class="green">Master AllOnes</th>
+							  <th class="green">Master Weighted</th>
+							  <th class="green">Master Weighted RR</th>
+							  <th class="green">Master Success</th>
+							  <th class="green">Master Incr.</th>
+							  <th class="green">Common Heuristic</th>
+							  <th class="green">Common Else</th>
+							</tr>
+							<tr class="fragment">
+							  <td><b class="green">M'2078</b></td>
+							  <td>1151</td>
+							  <td><b style="text-decoration:underline">1438</b></td>
+							  <td><b style="text-decoration:underline;">1219</b></td> <!-- same as best --auto strat! -->
+							  <td>1210</td>
+							  <td>1201</td>
+							  <td>1199</td>
+							  <td>1199</td>
+							  <td>1170</td>
+							  <td>1086</td>
+							</tr>
+							<tr class="fragment">
+							  <td><b class="green">VBT</b></td>
+							  <td>2637</td>
+							  <td><b style="text-decoration:underline;">3596</b></td>
+							  <td>2701</td>
+							  <td>2841</td>
+							  <td><b style="text-decoration:underline;">2858</b></td>
+							  <td>2806</td>
+							  <td>2785</td>
+							  <td>2710</td>
+							  <td>2521</td>
+							</tr>
+							<tr class="fragment">
+							  <td><b class="green">SLH-29</b></td>
+							  <td>3396</td>
+							  <td><b style="text-decoration:underline;">4203</b></td>
+							  <td>3642</td>
+							  <td><b style="text-decoration:underline;">3743</b></td>
+							  <td>3565</td>
+							  <td>3505</td>
+							  <td>3556</td>
+							  <td>3430</td>
+							  <td>3371</td>
+							</tr>
+						  </table>
+					</section>
+
+
+					  
+					<section>
+						<h4>Given Clause Selections (median)</h4>
+
+						<table class="smallestfont resultTable">
+							<tr class="fragment smallerfont">
+							  <th></th>
+							  <th class="green">Auto</th>
+							  <th class="green">AutoAll</th>
+							  <th class="green">Master AllOnes</th>
+							  <th class="green">Master Weighted</th>
+							  <th class="green">Master Weighted RR</th>
+							  <th class="green">Master Success</th>
+							  <th class="green">Master Incr.</th>
+							  <th class="green">Common Heuristic</th>
+							  <th class="green">Common Else</th>
+							</tr>
+							<tr class="fragment">
+							  <td><b class="green">M'2078</b></td>
+							  <td>104</td>
+							  <td><b style="text-decoration: underline;">51.5</b></td>
+							  <td><b style="text-decoration: underline;">92</b></td>
+							  <td>103.5</td>
+							  <td>119.5</td>
+							  <td>117</td>
+							  <td>112</td>
+							  <td>97</td>
+							  <td>105</td>
+							</tr>
+							<tr class="fragment">
+							  <td><b class="green">VBT</b></td>
+							  <td>1798</td>
+							  <td><b style="text-decoration: underline;">693.5</b></td>
+							  <td><b style="text-decoration: underline;">1475</b></td>
+							  <td>1565</td>
+							  <td>1524</td>
+							  <td>1600.5</td>
+							  <td>1558</td>
+							  <td>1531</td>
+							  <td>1878</td>
+							</tr>
+							<tr class="fragment">
+							  <td><b class="green">SLH-29</b></td>
+							  <td>1433</td>
+							  <td><b style="text-decoration: underline;">492</b></td>
+							  <td>874.5</td>
+							  <td><b style="text-decoration: underline;">751</b></td>
+							  <td>827.5</td>
+							  <td>760</td>
+							  <td>757</td>
+							  <td>932</td>
+							  <td>1038</td>
+							</tr>
+						  </table>
+					</section>
+
+
+					<section id="pictures">
+						<img style="max-height:215px;margin:0px;" src="images/MPTStrat.png">
+						<img style="max-height:215px;margin:0px;" src="images/VBTStrat.png">
+						<img style="max-height:215px;margin:0px;" src="images/SLHStrat.png">
+					</section>
+
+					<section id="mptPic">
+						<img style="scale:1.5;" src="images/MPTStrat.png">
+					</section>
+
+					<section id="vbtPic">
+						<img style="scale:1.5;" src="images/VBTStrat.png">
+					</section>
+
+					<section id="slhPic">
+						<img style="scale:1.5;" src="images/SLHStrat.png">
+					</section>
+				</section>
+
+				<section>
+					<h4>Conclusion</h4>
+					<ul class="smallerfont">
+						<li class="fragment">Strategy merging works surprisingly well</li>
+						<li class="fragment">Incremental merging looks promising for ITP</li>
+					</ul>
+				</section>
+
+
+				<section>
+					<h3>Thanks for listening</h3>
+					<em class="green">Questions?</em>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+					<em class="green">Suggestions?</em><br>
+				</section>
+
+			</div>
+		</div>
+
+		<script src="js/reveal.js"></script>
+
+		<script>
+			// More info about config & dependencies:
+			// - https://github.com/hakimel/reveal.js#configuration
+			// - https://github.com/hakimel/reveal.js#dependencies
+			Reveal.initialize({
+				hash: true,
+				math: {
+					mathjax: 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js',
+					config: 'TeX-AMS_HTML-full', // See http://docs.mathjax.org/en/latest/config-files.html
+					// pass other options into `MathJax.Hub.Config()`
+					TeX: { Macros: { RR: "{\\bf R}" } }
+				},
+
+				dependencies: [
+					{ src: 'plugin/markdown/marked.js' },
+					{ src: 'plugin/markdown/markdown.js' },
+					{ src: 'plugin/highlight/highlight.js' },
+					{ src: 'plugin/notes/notes.js', async: true },
+					{ src: 'plugin/math/math.js', async: true }
+				]
+			});
+
+
+			document.addEventListener("keypress", function(e){
+				if (e.key == 'u'){
+					document.querySelector("#outline").classList.add("floatingOutline")
+				}
+			})
+
+		</script>
+	</body>
+</html>
