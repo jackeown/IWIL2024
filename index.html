@@ -172,7 +172,8 @@
 						<h4>E Guidance Summary</h4>
 						<ul class="smallerfont">
 							<li class="fragment">--auto chooses a <em class="green">strategy</em></li>
-							<li class="fragment">An important part of each <em class="green">strategy</em> is its <em class="yellow">heuristic</em></li>
+							<li class="fragment">Strategies each have <em class="green">108 key-value pairs</em> currently</li>
+							<li class="fragment">One important key is the <em class="yellow">heuristic</em></li>
 							<li class="fragment">A <em class="yellow">heuristic</em> is a schedule over a set of <em class="red">Clause Evaluation Functions</em></li>
 						</ul>
 
@@ -181,9 +182,13 @@
 					<section id="eCEF">
 						<h4>Clause Evaluation Functions (CEFs)</h4>
 						<ul>
-							<li class="fragment smallerfont">CEFs are used to select given clauses.</li>
-							<li class="fragment smallerfont">Clause evaluations are used in a <em class="green">priority queue</em> per CEF</li>
-							<li class="fragment">
+							<li class="fragment smallerfont">Each CEF evaluates all unprocessed clauses.</li>
+							<li class="fragment smallerfont">Clause evaluations are used in a <em class="green">priority queue</em>
+							<ul>
+								<li class="smallerfont">(One priority queue per CEF)</li>
+							</ul>
+							</li>
+							<li class="fragment smallerfont">
 								<div class="Equeue box">
 									<div class="Eclause"> $\leftarrow$</div>
 									<div class="box Eclause" style="background-color:rgb(150, 255, 150)"></div>
@@ -243,6 +248,11 @@
 							<div class="smallerfont"><span class="green">4</span>.Refinedweight(SimulateSOS,3,...)</div>
 						</div>
 					
+						<div class="green evensmallerfont fragment">
+							<span style="transition: 1s all;transform: rotate3d(0,1,0,180deg);display: inline-block;">&#x2934;</span> 
+							"heuristic weights"
+						</div>
+
 						<textarea cols="70" rows="8" style="overflow: hidden;">
 Heuristic Definition in E:
 (fixed for a proof attempt)
@@ -397,27 +407,31 @@ Heuristic Definition in E:
 					<section>
 						<h4>Strategy Merging - Basic Idea</h4>
 						<ol class="smallerfont">
-							<li class="fragment">Use <em class="green">--auto</em> to get strategies E suggests for all problems</li>
+							<li class="fragment">Use <em class="green">--auto</em> to get strategies E chooses for all problems
+							<ul>
+								<li class="fragment smallerfont green">"problem strategies"</li>
+							</ul>
+							</li>
 							<li class="fragment">Merge all strategies into a single strategy</li>
-							<li class="fragment">Use the merged strategy for all problems</li>
+							<li class="fragment">Use the merged strategy to try to solve all problems</li>
 						</ol>
 					</section>
 
 					<section>
 						<h4>Strategy Merging - Methodology</h4>
 						<ul class="evensmallerfont">
-							<li class="fragment">Each <em class="yellow">key</em> in the merged strategy gets the most common <em class="red">value</em> from the input strategies.</li>
+							<li class="fragment">Each <em class="yellow">key</em> in the merged strategies gets the most common <em class="red">value</em> from the problem strategies.</li>
 							<li class="fragment">
-								<em class="yellow">Heuristic</em> is special: all CEFs from all input strategies are in the merged strategies:
+								<em class="yellow">Heuristic</em> is special: all CEFs from all problem strategies are in the merged strategies:
 								<ul>
-									<li class="fragment"><em class="green">MasterAllOnes:</em>Heuristic weights are all set to 1</li>
-									<li class="fragment"><em class="green">MasterWeighted:</em>Heuristic weights come from $\left\lceil\frac{20s_i}{s_m}\right\rceil$ where:
+									<li class="fragment"><em class="green">MasterAllOnes: </em>Heuristic weights are all set to 1</li>
+									<li class="fragment"><em class="green">MasterWeighted: </em>Heuristic weights are $\left\lceil\frac{20s_i}{s_m}\right\rceil$ where:
 										<ul>
-											<li class="fragment">$s_i$ is the sum of the heuristic weights of CEF $i$ in the input strategies</li>
+											<li class="fragment">$s_i$ is the sum of the heuristic weights of CEF $i$ in the problem strategies</li>
 											<li class="fragment">$s_m = \max_{i}(s_i)$</li>
 										</ul>
 									</li>
-									<li class="fragment"><em class="green">MasterSuccess:</em>Same as MasterWeighted, but merging only strategies that work for solving their problem.</li>
+									<li class="fragment"><em class="green">MasterSuccess: </em>Same as MasterWeighted, but merging only strategies that work for solving their problem.</li>
 								</ul>
 							</li>
 						</ul>
@@ -426,6 +440,45 @@ Heuristic Definition in E:
 					<section>
 						<h4>Strategy Merging </h4>
 						<img src="images/StratMerging.svg" style="width:850px;background:rgb(223, 251, 255)">
+					</section>
+
+					<section>
+						<h4>More Baselines - <span class="green" style="text-transform: none;">AutoAll</span></h4>
+						<ul class="evensmallerfont">
+							<li class="fragment"><span class="yellow">Question:</span> <br>How does the merged strategy compare to a well-chosen E strategy?</li>
+							<li class="fragment"><span class="green">How to answer:</span>
+							<ul>
+								<li class="fragment">Get all strategies chosen by <span class="green">--auto</span> over all problems in a dataset.</li>
+								<li class="fragment">Use every (unique) strategy on every problem</li>
+								<li class="fragment">Pick the best results</li>
+							</ul>
+							</li>
+						</ul>
+					</section>
+
+					<section>
+						<h4>More Baselines - <span class="green" style="text-transform: none;">MasterWeightedRR</span></h4>
+						<ul class="evensmallerfont">
+							<li class="fragment"><span class="yellow">Question:</span><br> Can MasterWeighted be improved by making E's CEF selection more fair?</li>
+							<li class="fragment"><span class="green">How to answer:</span>
+							<ul>
+								<li class="fragment">Usually 3*<span class="green">CEF1</span>, 2*<span class="red">CEF2</span> $\rightarrow$ <span class="fragment green">CEF1, </span><span class="fragment green">CEF1, </span> <span class="fragment green">CEF1,</span> <span class="fragment red">CEF2,</span> <span class="fragment red">CEF2,</span> <span class="fragment smallerfont">repeat</span></li>
+								<li class="fragment">Instead 3*<span class="green">CEF1</span>, 2*<span class="red">CEF2</span> $\rightarrow$ <span class="fragment green">CEF1,</span> <span class="fragment red">CEF2, </span><span class="fragment green">CEF1,</span> <span class="fragment red">CEF2, </span><span class="fragment green">CEF1,</span> <span class="fragment smallerfont">repeat</span></li>
+								<li class="fragment">Changed E code</li>
+								<li class="fragment">(<span class="green">MasterWeighted</span> strategy is used unchanged in this new context.)</li>
+									
+							</ul>
+							
+							</li>
+						</ul>
+					</section>
+
+					<section id="ablationStudy">
+						<h4>Ablation Study</h4>
+						<ul class="smallerfont">
+							<li class="fragment"><em class="green">CommonHeuristic:</em> <em class="yellow">--auto</em> strategy with <em class="red">MasterWeighted</em> heuristic</li>
+							<li class="fragment"><em class="green">CommonElse:</em> <em class="red">MasterWeighted</em> strategy with <em class="yellow">--auto</em> heuristic</li>
+						</ul>
 					</section>
 
 					<section id="itpApplication">
@@ -443,13 +496,7 @@ Heuristic Definition in E:
 						<img src="images/IterativeStratMerging.svg" style="width:800px;background:rgb(223, 251, 255)">
 					</section>
 
-					<section id="ablationStudy">
-						<h4>Ablation Study</h4>
-						<ul class="smallerfont">
-							<li class="fragment"><em class="green">CommonHeuristic:</em> <em class="yellow">--auto</em> strategy with <em class="red">MasterWeighted</em> heuristic</li>
-							<li class="fragment"><em class="green">CommonElse:</em> <em class="red">MasterWeighted</em> strategy with <em class="yellow">--auto</em> heuristic</li>
-						</ul>
-					</section>
+
 
 					<section id="fullArchitecture">
 						<h4>Full Architecture</h4>
@@ -458,48 +505,16 @@ Heuristic Definition in E:
 				</section>
 
 
-
-
-				<section id="otherComparisons">
-					<section>
-						<h4>More Baselines - <span class="green">AutoAll</span></h4>
-						<ul class="evensmallerfont">
-							<li class="fragment"><span class="yellow">Question:</span> <br>How does the merged strategy compare to a well-chosen E strategy?</li>
-							<li class="fragment"><span class="green">How to answer:</span>
-							<ul>
-								<li class="fragment">Get all strategies chosen by <span class="green">--auto</span> over all problems in a dataset.</li>
-								<li class="fragment">Use every (unique) strategy on every problem</li>
-								<li class="fragment">Pick the best results</li>
-							</ul>
-							</li>
-						</ul>
-					</section>
-
-					<section>
-						<h4>More Baselines - <span class="green">MasterWeightedRR</span></h4>
-						<ul class="evensmallerfont">
-							<li class="fragment"><span class="yellow">Question:</span><br> Can MasterWeighted be improved by making E's CEF selection more fair?</li>
-							<li class="fragment"><span class="green">How to answer:</span>
-							<ul>
-								<li class="fragment">Usually 3*<span class="green">CEF1</span>, 2*<span class="red">CEF2</span> $\rightarrow$ <span class="fragment green">CEF1, </span><span class="fragment green">CEF1, </span> <span class="fragment green">CEF1,</span> <span class="fragment red">CEF2,</span> <span class="fragment red">CEF2,</span> <span class="fragment smallerfont">repeat</span></li>
-								<li class="fragment">Instead 3*<span class="green">CEF1</span>, 2*<span class="red">CEF2</span> $\rightarrow$ <span class="fragment green">CEF1,</span> <span class="fragment red">CEF2, </span><span class="fragment green">CEF1,</span> <span class="fragment red">CEF2, </span><span class="fragment green">CEF1,</span> <span class="fragment smallerfont">repeat</span></li>
-								<li class="fragment">Changed E code</li>
-								<li class="fragment">(<span class="green">MasterWeighted</span> strategy is used unchanged in this new context.)</li>
-									
-							</ul>
-							
-							</li>
-						</ul>
-					</section>
-				</section>
-
-
 				<section id="datasets">
 					<h4>Datasets</h4>
 					<ul class="evensmallerfont">
 						<li class="fragment"><span class="green">MPTPTP2078:</span> 2078 <span style="text-decoration: underline;">first-order</span> problems</li>
-						<li class="fragment"><span class="red">VBT:</span> 8000 <span style="text-decoration: underline;">typed-first</span>-order problems <span class="fragment">(from Isabelle's Sledgehammer)</span></li>
-						<li class="fragment"><span class="yellow">SLH-29:</span> 8400 <span style="text-decoration: underline;">higher-order</span> problems <span class="fragment">(from Isabelle's Sledgehammer)</span></li>
+						<li class="fragment">Used in CASC:
+							<ul>
+								<li class="fragment"><span class="red">VBT:</span> 8000 <span style="text-decoration: underline;">typed-first</span>-order problems <span class="fragment">(from Isabelle's Sledgehammer)</span></li>
+								<li class="fragment"><span class="yellow">SLH-29:</span> 8400 <span style="text-decoration: underline;">higher-order</span> problems <span class="fragment">(from Isabelle's Sledgehammer)</span></li>
+							</ul>
+						</li>
 					</ul>
 				</section>
 
@@ -606,50 +621,50 @@ Heuristic Definition in E:
 							<tr class="fragment smallerfont">
 							  <th class="green"></th>
 							  <th class="green">Auto</th>
-							  <th class="green">AutoAll</th>
 							  <th class="green">Master AllOnes</th>
 							  <th class="green">Master Weighted</th>
-							  <th class="green">Master Weighted RR</th>
 							  <th class="green">Master Success</th>
-							  <th class="green">Master Incr.</th>
+							  <th class="green">AutoAll</th>
+							  <th class="green">Master Weighted RR</th>
 							  <th class="green">Common Heuristic</th>
 							  <th class="green">Common Else</th>
+							  <th class="green">Master Incr.</th>
 							</tr>
 							<tr class="fragment">
 							  <td><b class="green">M'2078</b></td>
 							  <td>1151</td>
-							  <td><b style="text-decoration:underline">1438</b></td>
 							  <td><b style="text-decoration:underline;">1219</b></td> <!-- same as best --auto strat! -->
 							  <td>1210</td>
+							  <td>1199</td>
+							  <td><b style="text-decoration:underline">1438</b></td>
 							  <td>1201</td>
-							  <td>1199</td>
-							  <td>1199</td>
 							  <td>1170</td>
 							  <td>1086</td>
+							  <td>1199</td>
 							</tr>
 							<tr class="fragment">
 							  <td><b class="green">VBT</b></td>
 							  <td>2637</td>
-							  <td><b style="text-decoration:underline;">3596</b></td>
 							  <td>2701</td>
 							  <td>2841</td>
-							  <td><b style="text-decoration:underline;">2858</b></td>
 							  <td>2806</td>
-							  <td>2785</td>
+							  <td><b style="text-decoration:underline;">3596</b></td>
+							  <td><b style="text-decoration:underline;">2858</b></td>
 							  <td>2710</td>
 							  <td>2521</td>
+							  <td>2785</td>
 							</tr>
 							<tr class="fragment">
 							  <td><b class="green">SLH-29</b></td>
 							  <td>3396</td>
-							  <td><b style="text-decoration:underline;">4203</b></td>
 							  <td>3642</td>
 							  <td><b style="text-decoration:underline;">3743</b></td>
-							  <td>3565</td>
 							  <td>3505</td>
-							  <td>3556</td>
+							  <td><b style="text-decoration:underline;">4203</b></td>
+							  <td>3565</td>
 							  <td>3430</td>
 							  <td>3371</td>
+							  <td>3556</td>
 							</tr>
 						  </table>
 					</section>
@@ -663,50 +678,50 @@ Heuristic Definition in E:
 							<tr class="fragment smallerfont">
 							  <th></th>
 							  <th class="green">Auto</th>
-							  <th class="green">AutoAll</th>
 							  <th class="green">Master AllOnes</th>
 							  <th class="green">Master Weighted</th>
-							  <th class="green">Master Weighted RR</th>
 							  <th class="green">Master Success</th>
-							  <th class="green">Master Incr.</th>
+							  <th class="green">AutoAll</th>
+							  <th class="green">Master Weighted RR</th>
 							  <th class="green">Common Heuristic</th>
 							  <th class="green">Common Else</th>
+							  <th class="green">Master Incr.</th>
 							</tr>
 							<tr class="fragment">
 							  <td><b class="green">M'2078</b></td>
 							  <td>104</td>
-							  <td><b style="text-decoration: underline;">51.5</b></td>
 							  <td><b style="text-decoration: underline;">92</b></td>
 							  <td>103.5</td>
-							  <td>119.5</td>
 							  <td>117</td>
-							  <td>112</td>
+							  <td><b style="text-decoration: underline;">51.5</b></td>
+							  <td>119.5</td>
 							  <td>97</td>
 							  <td>105</td>
+							  <td>112</td>
 							</tr>
 							<tr class="fragment">
 							  <td><b class="green">VBT</b></td>
 							  <td>1798</td>
-							  <td><b style="text-decoration: underline;">693.5</b></td>
 							  <td><b style="text-decoration: underline;">1475</b></td>
 							  <td>1565</td>
-							  <td>1524</td>
 							  <td>1600.5</td>
-							  <td>1558</td>
+							  <td><b style="text-decoration: underline;">693.5</b></td>
+							  <td>1524</td>
 							  <td>1531</td>
 							  <td>1878</td>
+							  <td>1558</td>
 							</tr>
 							<tr class="fragment">
 							  <td><b class="green">SLH-29</b></td>
 							  <td>1433</td>
-							  <td><b style="text-decoration: underline;">492</b></td>
 							  <td>874.5</td>
 							  <td><b style="text-decoration: underline;">751</b></td>
-							  <td>827.5</td>
 							  <td>760</td>
-							  <td>757</td>
+							  <td><b style="text-decoration: underline;">492</b></td>
+							  <td>827.5</td>
 							  <td>932</td>
 							  <td>1038</td>
+							  <td>757</td>
 							</tr>
 						  </table>
 					</section>
